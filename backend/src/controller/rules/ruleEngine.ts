@@ -154,8 +154,43 @@ interface AnalyzeSmsParams {
 
 /** Main analyze function */
 function analyzeSms({ message = "", sender = "", country = "PK", additionalTemplates = [] }: AnalyzeSmsParams): AnalysisResult {
+ // short-circuit invalid / too-short messages
+ const normalized = (message || "").trim();
+  if (!normalized || normalized.length < 4) {
+    return {
+      isScam: false,
+      confidence: 0,
+      reasons: ['Message empty or too short'],
+      suggestedAction: ['monitor'],
+      triggeredRules: [],
+      redacted: redactPII(normalized)
+    };
+  }
+
+  // emoji-only or whitespace-only (avoid sending to LLM)
+  if (/^[\p{Emoji}\s]+$/u.test(normalized)) {
+    return {
+      isScam: false,
+      confidence: 0,
+      reasons: ['Message appears to contain only emojis/whitespace'],
+      suggestedAction: ['monitor'],
+      triggeredRules: [],
+      redacted: redactPII(normalized)
+    };
+  }
+
+  // too long - avoid sending giant text to LLM
+  if (normalized.length > 2000) {
+    return {
+      isScam: false,
+      confidence: 0,
+      reasons: ['Message too long'],
+      suggestedAction: ['monitor'],
+      triggeredRules: [],
+      redacted: redactPII(normalized)
+    };
+  }
   const meta: AnalysisMeta = { sender, country, brandList: [...DEFAULT_BRANDS] };
-  const normalized = (message || "").trim();
   const triggered: { name: string; weight: number; reason: string }[] = [];
   const weights: number[] = [];
 
