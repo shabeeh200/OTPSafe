@@ -41,7 +41,7 @@ export interface AnalyzeSmsResponse {
   triggeredRules: TriggeredRule[]; // Details on which rules fired
   redacted: string;          // The PII-redacted version of the message
   llmExplanation?: string;   // Optional: AI-generated insight
-  source: 'rules' | 'llm';   // What generated the verdict
+  source: 'rules' | 'llm' | 'cache' | 'llm_pending';   // What generated the verdict
 }
 
 // Sub-type for the rule details

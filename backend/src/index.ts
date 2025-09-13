@@ -1,29 +1,37 @@
-import * as express from 'express';
-import { Request, Response } from 'express';
-import * as dotenv from "dotenv";
-import { analyzeSmsHandler } from './controller/analyzerController';
+// src/index.ts
+import express, { Request, Response, NextFunction } from 'express';
+import * as dotenv from 'dotenv';
+import helmet from 'helmet';
+import cors from 'cors';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import { analyzeSmsHandler } from './controller/analyzeController';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT || 3000);
 
-// Middleware
-app.use(express.json());
+app.use(helmet());
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }));
+app.use(express.json({ limit: '20kb' }));
+app.use(morgan('combined'));
 
-// Routes
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_MAX || 30),
+  message: { error: 'Too many requests, slow down.' }
+});
+app.use('/api/', limiter);
+
 app.post('/api/analyze-sms', analyzeSmsHandler);
+app.get('/health', (_req: Request, res: Response) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
 
-// Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+// centralized error handler
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json(process.env.NODE_ENV === 'development' ? { error: err?.message ?? 'Server Error' } : { error: 'Server Error' });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
-
-// Export for testing (if needed)
+app.listen(port, () => console.log(`Server listening on :${port}`));
 export default app;
