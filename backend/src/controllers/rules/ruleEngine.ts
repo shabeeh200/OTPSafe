@@ -154,9 +154,25 @@ interface AnalyzeSmsParams {
 
 /** Main analyze function */
 function analyzeSms({ message = "", sender = "", country = "PK", additionalTemplates = [] }: AnalyzeSmsParams): AnalysisResult {
- // short-circuit invalid / too-short messages
- const normalized = (message || "").trim();
-  if (!normalized || normalized.length < 4) {
+  // keep original trimmed text for rule matching (so regexes like RE_URL still work)
+  const original = (message || "").trim();
+
+  // prepare a normalized version for redaction/LLM that reduces noise for LLM
+  let normalized = original;
+
+  // If there are URLs present in the original, replace them in normalized with a token,
+  // but do NOT remove them from the original used for rule matching.
+  const urlMatches = original.match(RE_URL);
+  if (urlMatches && urlMatches.length) {
+    normalized = normalized.replace(RE_URL, ' <URL> ');
+  }
+
+  // Remove weird punctuation from normalized only (keep original intact for rules)
+  normalized = normalized.replace(/[^\p{L}\p{N}\s<>@.:\/\\-]/gu, ' ');
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+
+  // Use original for early short-circuits that should be applied before heavy LLM work
+  if (!original || original.length < 4) {
     return {
       isScam: false,
       confidence: 0,
@@ -167,7 +183,7 @@ function analyzeSms({ message = "", sender = "", country = "PK", additionalTempl
     };
   }
 
-  // emoji-only or whitespace-only (avoid sending to LLM)
+  // emoji-only / whitespace-only based on normalized (safe)
   if (/^[\p{Emoji}\s]+$/u.test(normalized)) {
     return {
       isScam: false,
@@ -179,8 +195,7 @@ function analyzeSms({ message = "", sender = "", country = "PK", additionalTempl
     };
   }
 
-  // too long - avoid sending giant text to LLM
-  if (normalized.length > 2000) {
+  if (original.length > 2000) {
     return {
       isScam: false,
       confidence: 0,
@@ -190,43 +205,39 @@ function analyzeSms({ message = "", sender = "", country = "PK", additionalTempl
       redacted: redactPII(normalized)
     };
   }
+
+  // Now run rules against the ORIGINAL (not the normalized) text so regexes keep working.
   const meta: AnalysisMeta = { sender, country, brandList: [...DEFAULT_BRANDS] };
   const triggered: { name: string; weight: number; reason: string }[] = [];
   const weights: number[] = [];
 
-  // run rules
   for (const rule of RULES) {
     try {
-      const res = rule.match(normalized, meta, additionalTemplates);
+      const res = rule.match(original, meta, additionalTemplates); // <-- important: original
       if (res) {
         triggered.push({ name: rule.name, weight: rule.weight, reason: res.reason });
         weights.push(rule.weight);
       }
     } catch (e) {
-      // ignore rule errors
       console.error(`Error in rule ${rule.name}:`, e);
     }
   }
 
-  // optional: match against developer-provided known scam templates
+  // optional: additional templates matching against original text
   if (additionalTemplates && Array.isArray(additionalTemplates)) {
     for (const t of additionalTemplates) {
-      if (t && typeof t === "string" && normalized.toLowerCase().includes(t.toLowerCase())) {
+      if (t && typeof t === "string" && original.toLowerCase().includes(t.toLowerCase())) {
         triggered.push({ name: "known_template", weight: 0.8, reason: `Matches known scam template: "${t}"` });
         weights.push(0.8);
       }
     }
   }
 
-  // compute confidence, but handle OTP/personal overrides
+  // compute confidence, handle OTP/personal override
   const hasOtpOrPersonal = triggered.some(r => r.name === "otp_request" || r.name === "personal_info_request");
   let confidence = computeConfidence(weights);
+  if (hasOtpOrPersonal) confidence = Math.max(confidence, 0.99);
 
-  if (hasOtpOrPersonal) {
-    confidence = Math.max(confidence, 0.99);
-  }
-
-  // determine isScam with threshold
   const threshold = 0.6;
   const isScam = confidence >= threshold;
 
@@ -249,9 +260,12 @@ function analyzeSms({ message = "", sender = "", country = "PK", additionalTempl
     reasons: triggered.map(t => t.reason),
     suggestedAction,
     triggeredRules: triggered,
-    redacted: redactPII(normalized)
+    redacted: redactPII(normalized) // redact the normalized version
   };
 }
+
+
+
 
 /** Export */
 export { analyzeSms, redactPII, RULES };

@@ -2,7 +2,7 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import { isAnalyzeSmsRequest, AnalyzeSmsRequest, AnalyzeSmsResponse, ApiErrorResponse } from '../types';
-import { analyzeRequest } from './service/analysisService';
+import { analyzeRequest } from './services/analysisService';
 
 export const analyzeSmsHandler = async (req: Request, res: Response<AnalyzeSmsResponse | ApiErrorResponse>): Promise<void> => {
   if (!isAnalyzeSmsRequest(req.body)) {
