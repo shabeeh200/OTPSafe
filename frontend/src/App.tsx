@@ -13,7 +13,7 @@ export default function App(): JSX.Element {
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold">S</div>
             <div>
               <h1 className="text-lg font-semibold">SMS Scam Alerter</h1>
-              <p className="text-xs text-slate-500">Detect phishing / scam SMS in Pakistan — demo</p>
+              <p className="text-xs text-slate-500">Detect phishing / scam SMS in Pakistan</p>
             </div>
           </div>
           <nav className="text-sm text-slate-500">
@@ -37,11 +37,6 @@ export default function App(): JSX.Element {
               <div className="font-medium">PTA (Pakistan Telecom Authority)</div>
               <div>Helpline: 0800-55055</div>
               <div>Email: complaint@pta.gov.pk</div>
-            </div>
-            <div>
-              <div className="font-medium">Customer Support (Demo)</div>
-              <div>Email: support@example.com</div>
-              <div>Hours: Mon–Fri 09:00–17:00</div>
             </div>
             <div>
               <div className="font-medium">Notes</div>

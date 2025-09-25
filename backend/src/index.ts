@@ -18,12 +18,28 @@ const port = Number(process.env.PORT || 3000);
 
 // Basic middlewares
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN , // tighten in prod
-    methods: ['GET', 'POST', 'OPTIONS'],
-  })
-);
+
+const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
+const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow non-browser requests like curl/postman (no origin)
+    if (!origin) return callback(null, true);
+
+    // normalize incoming origin (remove trailing slash)
+    const normalized = origin.replace(/\/+$/, '');
+
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(normalized)) {
+      // echo back the exact origin the browser sent (not the env var)
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-Admin-Token'],
+  optionsSuccessStatus: 204,
+}));
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
 // Routes
