@@ -38,10 +38,6 @@ export default function App(): JSX.Element {
               <div>Helpline: 0800-55055</div>
               <div>Email: complaint@pta.gov.pk</div>
             </div>
-            <div>
-              <div className="font-medium">Notes</div>
-              <div>This is a demo. LLM usage is rate-limited.</div>
-            </div>
           </div>
         </div>
       </footer>
