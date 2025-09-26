@@ -23,29 +23,13 @@ const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" 
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // allow non-browser requests like curl/postman (no origin)
-    if (!origin) return callback(null, true);
-
-    // normalize incoming origin (remove trailing slash)
-    const normalized = origin.replace(/\/+$/, '');
-
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(normalized)) {
-      // echo back the exact origin the browser sent (not the env var)
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-Admin-Token'],
-  optionsSuccessStatus: 204,
+  origin: allowedOrigins.includes('*') ? true : allowedOrigins,
 }));
+
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
-// Routes
-app.use('/analyze', analyzeSmsRoute );
 
-// Admin routes (mounted under /admin)
+app.use('/analyze', analyzeSmsRoute );
 app.use('/admin', adminRouter);
 
 // Health check
@@ -53,7 +37,6 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Not Found' });
 });
@@ -68,16 +51,13 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 // Process-level guards
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  // optional: graceful shutdown logic here
+  // graceful shutdown logic here? Later
 });
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
-  // optional: graceful shutdown logic here
+  // graceful shutdown logic here? Later
 });
 
 // Start
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port} (env=${process.env.NODE_ENV || 'dev'})`);
-});
 
 export default app;
