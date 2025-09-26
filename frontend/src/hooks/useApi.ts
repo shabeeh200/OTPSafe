@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 type AnalyzeRequest = { message: string; sender?: string; country?: string };
 type AnalyzeResponse = any;
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:3000';
+const API_BASE = (import.meta.env.VITE_API_BASE as string) || '';
 
 function safeJson(res: Response) {
   return res.text().then(t => {
@@ -20,7 +20,7 @@ export function useApi() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/analyze/analyze-sms`, {
+      const res = await fetch(`${API_BASE}/api/analyze/analyze-sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
