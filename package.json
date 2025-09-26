@@ -7,7 +7,8 @@
   },
 
   "scripts": {
-    "vercel-build": "cd backend && npm ci && npm run build || true"
+  "vercel-build": "cd frontend && npm ci && npm run build && cp -a dist ../public && cd ../backend && npm ci && npm run build"
+
   }
 
 
