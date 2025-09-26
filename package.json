@@ -6,10 +6,9 @@
     "@vercel/node": "^5.3.24"
   },
 
-  "scripts": {
-  "vercel-build": "cd frontend && npm ci && npm run build && cp -a dist ../public && cd ../backend && npm ci && npm run build"
-
-  }
+"scripts": {
+  "vercel-build": "cd frontend && npm ci && npm run build && if [ -d build ]; then cp -a build ../public; elif [ -d dist ]; then cp -a dist ../public; fi && cd ../backend && npm ci && npm run build"
+}
 
 
 }
