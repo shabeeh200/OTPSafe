@@ -63,6 +63,4 @@ app.listen(port, () => {
   console.log(`Server running at http://localhost:${port} (env=${process.env.NODE_ENV || 'dev'})`);
 });
 
-app.listen(port, () => console.log(`Listening on ${port}`));
-
 export default app;
