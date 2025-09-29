@@ -1,18 +1,32 @@
-# simple Dockerfile for Back4App
-FROM node:18
+# multi-stage Dockerfile for Node 22 + TypeScript backend
+# builder: install dev deps and build
+FROM node:22-bullseye AS builder
+WORKDIR /app
 
-WORKDIR /usr/src/app
+# copy package metadata first for fast rebuilds
+COPY package.json package-lock.json tsconfig.json ./
 
-# copy package files, install deps
-COPY package*.json ./
-RUN npm install
+# install all deps (dev + prod) for build
+RUN npm ci
 
-# copy source, build TypeScript
+# copy source and build
 COPY . .
 RUN npm run build
 
-# Back4App will set PORT; we expose 3000 by default
+# runner: smaller image with only production deps + compiled output
+FROM node:22-bullseye-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+# copy package metadata and install prod deps only
+COPY package.json package-lock.json ./
+RUN npm ci --only=production
+
+# copy compiled app
+COPY --from=builder /app/dist ./dist
+
+# expose port (app uses process.env.PORT || 3000)
 EXPOSE 3000
 
-# start the built app
-CMD ["npm", "start"]
+# Start app
+CMD ["node", "dist/index.js"]
