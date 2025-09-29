@@ -31,7 +31,7 @@ const corsOptions = {
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   optionsSuccessStatus: 204,
   allowedHeaders: "Content-Type,Authorization,Accept,Origin,X-Requested-With",
-  credentials: true // set to true only if you need cookies/auth
+  credentials: false // set to true only if you need cookies/auth
 };
 app.use((req, _res, next) => {
   if (req.method === 'OPTIONS') console.log('[CORS] preflight', req.method, req.path, 'Origin:', req.headers.origin);
