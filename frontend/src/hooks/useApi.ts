@@ -20,7 +20,7 @@ export function useApi() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/analyze/analyze-sms`, {
+      const res = await fetch(`${API_BASE}/analyze/analyze-sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
