@@ -16,7 +16,7 @@ const port = Number(process.env.PORT || 3000);
 
 const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
-app.options('*', cors({
+app.options('/*', cors({
   origin: allowedOrigins.includes('*') ? true : allowedOrigins
 }));
 app.use(cors({
