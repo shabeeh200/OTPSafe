@@ -4,15 +4,10 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 // import  rateLimit from 'express-rate-limit';// src/index.ts
-
-dotenv.config();
-
-import express, { Request, Response, NextFunction } from 'express';
-
-// Routers / controllers
 import analyzeSmsRoute from './routes/analyze.routes'
 import adminRouter from './routes/admin.route';
-
+import express, { Request, Response, NextFunction } from 'express';
+dotenv.config();
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
@@ -23,9 +18,13 @@ const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" 
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
 
 app.use(cors({
-  origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+  origin: allowedOrigins.includes('*') ? true : allowedOrigins
 }));
 
+app.options('*', cors({
+  origin: allowedOrigins.includes('*') ? true : allowedOrigins
+
+}));
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
 
