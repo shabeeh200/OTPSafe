@@ -16,7 +16,33 @@ const port = Number(process.env.PORT || 3000);
 
 const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
-app.use(cors({ origin: allowedOrigins.includes('*') ? true : allowedOrigins }));
+
+// CORS options that verify origin
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // non-browser requests (curl, server-to-server) often have undefined origin — allow them
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  optionsSuccessStatus: 204,
+  allowedHeaders: "Content-Type,Authorization,Accept,Origin,X-Requested-With",
+  credentials: true // set to true only if you need cookies/auth
+};
+app.use((req, _res, next) => {
+  if (req.method === 'OPTIONS') console.log('[CORS] preflight', req.method, req.path, 'Origin:', req.headers.origin);
+  next();
+});
+
+// apply global CORS (before routes)
+app.use(cors(corsOptions));
+
+// safe preflight handler using RegExp (NOT a string)
+app.options(/.*/, cors(corsOptions));
 app.use(helmet());
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
