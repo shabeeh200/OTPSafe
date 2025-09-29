@@ -40,7 +40,7 @@ app.use((req, _res, next) => {
 
 // apply global CORS (before routes)
 app.use(cors(corsOptions));
-
+app.options(/.*/, cors(corsOptions));
 app.options('/analyze/analyze-sms', cors(corsOptions), (_req, res) => {
   return res.sendStatus(204);
 });
