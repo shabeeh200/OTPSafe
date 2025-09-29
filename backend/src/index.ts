@@ -1,4 +1,4 @@
-
+console.log("==== [DEBUG] Server boot sequence starting ====");
 import  dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -63,7 +63,7 @@ process.on('unhandledRejection', (reason) => {
   // graceful shutdown logic here? Later
 });
 
-
+console.log("==== [DEBUG] About to call app.listen on port", port);
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port} (env=${process.env.NODE_ENV || 'dev'})`);
 });
