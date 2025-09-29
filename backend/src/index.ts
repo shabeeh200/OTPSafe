@@ -12,19 +12,17 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 
 // Basic middlewares
-app.use(helmet());
+
 
 const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
-
+app.options('*', cors({
+  origin: allowedOrigins.includes('*') ? true : allowedOrigins
+}));
 app.use(cors({
   origin: allowedOrigins.includes('*') ? true : allowedOrigins
 }));
-
-app.options('*', cors({
-  origin: allowedOrigins.includes('*') ? true : allowedOrigins
-
-}));
+app.use(helmet());
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
 
