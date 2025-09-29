@@ -41,8 +41,9 @@ app.use((req, _res, next) => {
 // apply global CORS (before routes)
 app.use(cors(corsOptions));
 
-// safe preflight handler using RegExp (NOT a string)
-app.options(/.*/, cors(corsOptions));
+app.options('/analyze/analyze-sms', cors(corsOptions), (_req, res) => {
+  return res.sendStatus(204);
+});
 app.use(helmet());
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
