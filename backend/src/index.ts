@@ -106,19 +106,21 @@ const port = Number(process.env.PORT || 3000);
 const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
 
-// Replace your corsOptions with this
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean | string) => void) => {
-    // Allow undefined origin (like curl / server-to-server requests)
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // non-browser requests (curl, server-to-server) often have undefined origin — allow them
     if (!origin) return callback(null, true);
 
-    // Echo back the origin (more permissive, safer for dynamic frontends)
-    return callback(null, origin);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
   },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  allowedHeaders: 'Content-Type,Authorization,Accept,Origin,X-Requested-With',
   optionsSuccessStatus: 204,
-  credentials: false, // set to true only if you need cookies/auth
+  allowedHeaders: 'Content-Type,Authorization,Accept,Origin,X-Requested-With',
+  credentials: false,
 };
 
 // ------------------------------
@@ -143,17 +145,25 @@ app.use(cors(corsOptions));
 // Defensive CORS handlers to handle platform that rewrites OPTIONS to '/'
 // ------------------------------
 // Explicitly respond to OPTIONS at root (some hosts rewrite preflights to /)
-app.options('/', (_req, res) => {
-  res.header('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : allowedOrigins.join(','));
+app.options('/', (req, res) => {
+  const origin = (req.headers.origin as string) || '*';
+  // echo origin to avoid mismatched CORS at CDN/edge
+  res.header('Access-Control-Allow-Origin', origin);
+  // instruct caches to vary by origin and not to store the OPTIONS response
+  res.header('Vary', 'Origin');
+  res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', _req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
+  res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
   return res.sendStatus(204);
 });
 
 // Catch-all for any OPTIONS that might arrive at arbitrary paths (defensive)
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : allowedOrigins.join(','));
+    const origin = (req.headers.origin as string) || '*';
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+    res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
     return res.sendStatus(204);

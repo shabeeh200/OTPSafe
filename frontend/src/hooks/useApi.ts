@@ -24,7 +24,7 @@ export function useApi() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        credentials: 'omit'
+  
       });
       const data = await safeJson(res);
       if (!res.ok) {
