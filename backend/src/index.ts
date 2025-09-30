@@ -106,21 +106,19 @@ const port = Number(process.env.PORT || 3000);
 const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
 
+// Replace your corsOptions with this
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // non-browser requests (curl, server-to-server) often have undefined origin — allow them
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean | string) => void) => {
+    // Allow undefined origin (like curl / server-to-server requests)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error('Not allowed by CORS'));
+    // Echo back the origin (more permissive, safer for dynamic frontends)
+    return callback(null, origin);
   },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  optionsSuccessStatus: 204,
   allowedHeaders: 'Content-Type,Authorization,Accept,Origin,X-Requested-With',
-  credentials: false,
+  optionsSuccessStatus: 204,
+  credentials: false, // set to true only if you need cookies/auth
 };
 
 // ------------------------------
