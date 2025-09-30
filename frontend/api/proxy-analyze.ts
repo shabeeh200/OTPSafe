@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         req.on('error', reject);
       });
 
-    console.log('[proxy] forwarding to backend with body:', body);
+    console.log('[proxy] forwarding to backend with  error body:', body);
 
     const backendRes = await fetch('https://otpsafebackend-crp3hkt2.b4a.run/analyze/analyze-sms', {
       method: 'POST',
