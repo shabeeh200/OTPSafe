@@ -1,6 +1,6 @@
 # OTPSafe
 
-OTPSafe started because I kept seeing SMS scam reports on LinkedIn and there wasn’t a simple public tool to collect/analyze them. I built this backend to experiment with practical rule-based detection and AI assistance (Gemini integrated) for real-time scam detection.
+OTPSafe is a  TypeScript-powered backend service/project designed to analyze SMS messages for potential scams and phishing attempts.I kept coming across scam SMS reports on LinkedIn and other platforms, but couldn’t find an easy tool to analyze them. That gap inspired me to try building one.I built this backend to experiment with practical rule-based detection and AI assistance (Gemini integrated) for real-time scam detection.It’s more of a learning + problem-solving project than a polished production system.
 
 ## TL;DR
 - Backend: TypeScript + Express API that checks SMS for scams.  
