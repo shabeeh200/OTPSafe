@@ -1,111 +1,23 @@
-// console.log("==== [DEBUG] Server boot sequence starting ====");
-// import  dotenv from 'dotenv';
-// import helmet from 'helmet';
-// import cors from 'cors';
-// import morgan from 'morgan';
-// // import  rateLimit from 'express-rate-limit';// src/index.ts
-// import analyzeSmsRoute from './routes/analyze.routes'
-// import adminRouter from './routes/admin.route';
-// import express, { Request, Response, NextFunction } from 'express';
-// dotenv.config();
-// const app = express();
-// const port = Number(process.env.PORT || 3000);
-
-// // Basic middlewares
-
-
-// const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
-// const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
-
-// // CORS options that verify origin
-// const corsOptions = {
-//   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-//     // non-browser requests (curl, server-to-server) often have undefined origin — allow them
-//     if (!origin) return callback(null, true);
-
-//     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-//       return callback(null, true);
-//     }
-//     return callback(new Error('Not allowed by CORS'));
-//   },
-//   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-//   optionsSuccessStatus: 204,
-//   allowedHeaders: "Content-Type,Authorization,Accept,Origin,X-Requested-With",
-//   credentials: false // set to true only if you need cookies/auth
-// };
-// app.use((req, _res, next) => {
-//   if (req.method === 'OPTIONS') console.log('[CORS] preflight', req.method, req.path, 'Origin:', req.headers.origin);
-//   next();
-// });
-
-// // apply global CORS (before routes)
-// app.use(cors(corsOptions));
-// app.options(/.*/, cors(corsOptions));
-// app.options('/analyze/analyze-sms', cors(corsOptions), (_req, res) => {
-//   return res.sendStatus(204);
-// });
-// app.use(helmet());
-// app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
-
-
-// app.use('/analyze', analyzeSmsRoute );
-// app.use('/admin', adminRouter);
-
-// // Health check
-// app.get('/health', (_req: Request, res: Response) => {
-//   res.json({ status: 'OK', timestamp: new Date().toISOString() });
-// });
-
-// app.use((_req: Request, res: Response) => {
-//   res.status(404).json({ error: 'Not Found' });
-// });
-
-// // Global error handler
-// app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-//   console.error('Unhandled error:', err && (err.stack || err));
-//   const isDev = process.env.NODE_ENV === 'development';
-//   res.status(500).json(isDev ? { error: 'Internal Server Error', details: String(err?.message || err) } : { error: 'Internal Server Error' });
-// });
-
-// // Process-level guards
-// process.on('uncaughtException', (err) => {
-//   console.error('Uncaught Exception:', err);
-//   // graceful shutdown logic here? Later
-// });
-// process.on('unhandledRejection', (reason) => {
-//   console.error('Unhandled Rejection:', reason);
-//   // graceful shutdown logic here? Later
-// });
-
-// console.log("==== [DEBUG] About to call app.listen on port", port);
-// app.listen(port, () => {
-//   console.log(`Server running at http://localhost:${port} (env=${process.env.NODE_ENV || 'dev'})`);
-// });
-
-// export default app;
-console.log('==== [DEBUG] Server boot sequence starting ====');
-
-import dotenv from 'dotenv';
-import express, { Request, Response, NextFunction } from 'express';
+console.log("==== [DEBUG] Server boot sequence starting ====");
+import  dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
-// import rateLimit from 'express-rate-limit';
-
-import analyzeSmsRoute from './routes/analyze.routes';
+// import  rateLimit from 'express-rate-limit';// src/index.ts
+import analyzeSmsRoute from './routes/analyze.routes'
 import adminRouter from './routes/admin.route';
-
+import express, { Request, Response, NextFunction } from 'express';
 dotenv.config();
-
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
-// ------------------------------
-// CORS configuration
-// ------------------------------
+// Basic middlewares
+
+
 const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
 const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
 
+// CORS options that verify origin
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // non-browser requests (curl, server-to-server) often have undefined origin — allow them
@@ -114,67 +26,29 @@ const corsOptions = {
     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-
     return callback(new Error('Not allowed by CORS'));
   },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   optionsSuccessStatus: 204,
-  allowedHeaders: 'Content-Type,Authorization,Accept,Origin,X-Requested-With',
-  credentials: false,
+  allowedHeaders: "Content-Type,Authorization,Accept,Origin,X-Requested-With",
+  credentials: false // set to true only if you need cookies/auth
 };
+app.use((req, _res, next) => {
+  if (req.method === 'OPTIONS') console.log('[CORS] preflight', req.method, req.path, 'Origin:', req.headers.origin);
+  next();
+});
 
-// ------------------------------
-// Middlewares
-// ------------------------------
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// apply global CORS (before routes)
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+app.options('/analyze/analyze-sms', cors(corsOptions), (_req, res) => {
+  return res.sendStatus(204);
+});
 app.use(helmet());
 app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
 
-// Log incoming preflight requests for debugging
-app.use((req, _res, next) => {
-  if (req.method === 'OPTIONS') {
-    console.log('[CORS] preflight', req.method, req.path, 'Origin:', req.headers.origin ?? 'undefined');
-  }
-  next();
-});
 
-// Apply global CORS middleware (before routes)
-app.use(cors(corsOptions));
-
-// ------------------------------
-// Defensive CORS handlers to handle platform that rewrites OPTIONS to '/'
-// ------------------------------
-// Explicitly respond to OPTIONS at root (some hosts rewrite preflights to /)
-app.options('/', (req, res) => {
-  const origin = (req.headers.origin as string) || '*';
-  // echo origin to avoid mismatched CORS at CDN/edge
-  res.header('Access-Control-Allow-Origin', origin);
-  // instruct caches to vary by origin and not to store the OPTIONS response
-  res.header('Vary', 'Origin');
-  res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
-  return res.sendStatus(204);
-});
-
-// Catch-all for any OPTIONS that might arrive at arbitrary paths (defensive)
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    const origin = (req.headers.origin as string) || '*';
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Vary', 'Origin');
-    res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
-    return res.sendStatus(204);
-  }
-  next();
-});
-
-// ------------------------------
-// Routes
-// ------------------------------
-app.use('/analyze', analyzeSmsRoute);
+app.use('/analyze', analyzeSmsRoute );
 app.use('/admin', adminRouter);
 
 // Health check
@@ -182,7 +56,6 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// 404 fallback
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Not Found' });
 });
@@ -197,18 +70,145 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 // Process-level guards
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  // consider graceful shutdown here
+  // graceful shutdown logic here? Later
 });
-
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
-  // consider graceful shutdown here
+  // graceful shutdown logic here? Later
 });
 
-console.log('==== [DEBUG] About to call app.listen on port', port);
+console.log("==== [DEBUG] About to call app.listen on port", port);
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port} (env=${process.env.NODE_ENV || 'dev'})`);
 });
 
-export default app;
+// export default app;
+// console.log('==== [DEBUG] Server boot sequence starting ====');
+
+// import dotenv from 'dotenv';
+// import express, { Request, Response, NextFunction } from 'express';
+// import helmet from 'helmet';
+// import cors from 'cors';
+// import morgan from 'morgan';
+// // import rateLimit from 'express-rate-limit';
+
+// import analyzeSmsRoute from './routes/analyze.routes';
+// import adminRouter from './routes/admin.route';
+
+// dotenv.config();
+
+// const app = express();
+// const port = Number(process.env.PORT || 3000);
+
+// // ------------------------------
+// // CORS configuration
+// // ------------------------------
+// const rawCors = process.env.CORS_ORIGIN || '*'; // e.g. "http://localhost:5173" or "*" or "https://your-frontend.com"
+// const allowedOrigins = rawCors === '*' ? ['*'] : rawCors.split(',').map(s => s.replace(/\/+$/, '').trim());
+
+// const corsOptions = {
+//   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+//     // non-browser requests (curl, server-to-server) often have undefined origin — allow them
+//     if (!origin) return callback(null, true);
+
+//     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+//       return callback(null, true);
+//     }
+
+//     return callback(new Error('Not allowed by CORS'));
+//   },
+//   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+//   optionsSuccessStatus: 204,
+//   allowedHeaders: 'Content-Type,Authorization,Accept,Origin,X-Requested-With',
+//   credentials: false,
+// };
+
+// // ------------------------------
+// // Middlewares
+// // ------------------------------
+// app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// app.use(helmet());
+// app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '20kb' }));
+
+// // Log incoming preflight requests for debugging
+// app.use((req, _res, next) => {
+//   if (req.method === 'OPTIONS') {
+//     console.log('[CORS] preflight', req.method, req.path, 'Origin:', req.headers.origin ?? 'undefined');
+//   }
+//   next();
+// });
+
+// // Apply global CORS middleware (before routes)
+// app.use(cors(corsOptions));
+
+// // ------------------------------
+// // Defensive CORS handlers to handle platform that rewrites OPTIONS to '/'
+// // ------------------------------
+// // Explicitly respond to OPTIONS at root (some hosts rewrite preflights to /)
+// app.options('/', (req, res) => {
+//   const origin = (req.headers.origin as string) || '*';
+//   // echo origin to avoid mismatched CORS at CDN/edge
+//   res.header('Access-Control-Allow-Origin', origin);
+//   // instruct caches to vary by origin and not to store the OPTIONS response
+//   res.header('Vary', 'Origin');
+//   res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+//   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
+//   res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
+//   return res.sendStatus(204);
+// });
+
+// // Catch-all for any OPTIONS that might arrive at arbitrary paths (defensive)
+// app.use((req, res, next) => {
+//   if (req.method === 'OPTIONS') {
+//     const origin = (req.headers.origin as string) || '*';
+//     res.header('Access-Control-Allow-Origin', origin);
+//     res.header('Vary', 'Origin');
+//     res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+//     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH,DELETE,OPTIONS');
+//     res.header('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
+//     return res.sendStatus(204);
+//   }
+//   next();
+// });
+
+// // ------------------------------
+// // Routes
+// // ------------------------------
+// app.use('/analyze', analyzeSmsRoute);
+// app.use('/admin', adminRouter);
+
+// // Health check
+// app.get('/health', (_req: Request, res: Response) => {
+//   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+// });
+
+// // 404 fallback
+// app.use((_req: Request, res: Response) => {
+//   res.status(404).json({ error: 'Not Found' });
+// });
+
+// // Global error handler
+// app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+//   console.error('Unhandled error:', err && (err.stack || err));
+//   const isDev = process.env.NODE_ENV === 'development';
+//   res.status(500).json(isDev ? { error: 'Internal Server Error', details: String(err?.message || err) } : { error: 'Internal Server Error' });
+// });
+
+// // Process-level guards
+// process.on('uncaughtException', (err) => {
+//   console.error('Uncaught Exception:', err);
+//   // consider graceful shutdown here
+// });
+
+// process.on('unhandledRejection', (reason) => {
+//   console.error('Unhandled Rejection:', reason);
+//   // consider graceful shutdown here
+// });
+
+// console.log('==== [DEBUG] About to call app.listen on port', port);
+// app.listen(port, () => {
+//   console.log(`Server running at http://localhost:${port} (env=${process.env.NODE_ENV || 'dev'})`);
+// });
+
+// export default app;
 

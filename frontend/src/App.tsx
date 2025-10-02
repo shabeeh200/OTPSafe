@@ -6,37 +6,56 @@ import AnalyzeForm from './components/AnalyzeForm';
 
 export default function App(): JSX.Element {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold">S</div>
-            <div>
-              <h1 className="text-lg font-semibold">SMS Scam Alerter</h1>
-              <p className="text-xs text-slate-500">Detect phishing / scam SMS in Pakistan</p>
+    <div className="min-h-screen bg-white text-slate-900 antialiased">
+      {/* Header */}
+      <header className="bg-white border-b">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-4">
+              {/* simple mark / logo */}
+              <div className="w-10 h-10 rounded-lg bg-black/90 flex items-center justify-center text-white font-semibold">
+                SSA
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold">SMS Scam Alerter</h1>
+                <p className="text-xs text-gray-500">Detect phishing & scam SMS in Pakistan</p>
+              </div>
             </div>
+
+            <nav className="text-sm text-gray-600 flex items-center gap-4">
+              <span className="text-xs px-2 py-1 border rounded-md border-gray-200 bg-gray-50">Demo</span>
+              <span className="text-xs text-gray-400">Secure • Rate-limited</span>
+            </nav>
           </div>
-          <nav className="text-sm text-slate-500">
-            <span className="mr-3">Demo</span>
-            <span className="text-xs text-slate-400">Secure • Rate-limited</span>
-          </nav>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <AnalyzeForm />
+      {/* Main (full-width container; AnalyzeForm handles internal max-width) */}
+      <main className="w-full">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <AnalyzeForm />
+        </div>
       </main>
 
+      {/* Footer */}
       <footer className="bg-white border-t mt-12">
-        <div className="max-w-3xl mx-auto px-4 py-6 text-sm text-slate-600">
-          <div className="mb-3">
-            <strong>Quick help</strong>: If you receive a suspicious SMS, do NOT share OTPs or personal info.
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm text-gray-700">
+          <div className="mb-4">
+            <strong>Quick help:</strong> If you receive a suspicious SMS, do NOT share OTPs or personal info.
           </div>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-3 gap-6">
             <div>
               <div className="font-medium">PTA (Pakistan Telecom Authority)</div>
-              <div>Helpline: 0800-55055</div>
-              <div>Email: complaint@pta.gov.pk</div>
+              <div className="text-sm">Helpline: 0800-55055</div>
+              <div className="text-sm">Email: complaint@pta.gov.pk</div>
+            </div>
+            <div>
+              <div className="font-medium">Security tips</div>
+              <div className="text-sm">Never click unknown links. Verify sender via official channels.</div>
+            </div>
+            <div>
+              <div className="font-medium">About</div>
+              <div className="text-sm">Beta tool • For educational/demo use only.</div>
             </div>
           </div>
         </div>
