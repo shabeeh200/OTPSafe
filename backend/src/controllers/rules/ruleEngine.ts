@@ -55,6 +55,7 @@ const RULES: Rule[] = [
       return null;
     }
   },
+  
   {
     name: "personal_info_request",
     weight: 1.0,
@@ -81,16 +82,26 @@ const RULES: Rule[] = [
   {
     name: "brand_impersonation",
     weight: 0.6,
-    match: (msg: string, meta?: AnalysisMeta): RuleMatchResult | null => {
+    match: (msg: string, meta?: AnalysisMeta) => {
       const lower = msg.toLowerCase();
       const brandList = meta?.brandList || DEFAULT_BRANDS;
+      // also check sender field
+      const senderLower = (meta?.sender || "").toLowerCase();
+
       for (const b of brandList) {
-        if (lower.includes(b) && /(verify|suspend|click|link|otp|account)/i.test(lower)) {
-          return { reason: `Mentions brand '${b}' with action request` };
+        const mentionsBrandInMsg = lower.includes(b);
+        const senderLooksLikeBrand = senderLower.includes(b) || senderLower === b;
+        if ((mentionsBrandInMsg || senderLooksLikeBrand) && /(verify|suspend|click|link|otp|account)/i.test(lower)) {
+          return { reason: `Mentions brand '${b}' (message or sender) with action request.` };
+        }
+        // also consider OTP imperative + sender brand
+        if ((mentionsBrandInMsg || senderLooksLikeBrand) && /\b(send|please|pls|otp)\b/i.test(msg)) {
+          return { reason: `Sender matches brand '${b}' and message requests OTP` };
         }
       }
       return null;
     }
+
   },
   {
     name: "shortcode_sender",

@@ -51,6 +51,35 @@ function consumeToken(): boolean {
 function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
 }
+function extractJsonFromText(text: string): any | null {
+  if (!text || typeof text !== 'string') return null;
+  const t = text.trim();
+
+  // 1) direct parse
+  try { return JSON.parse(t); } catch {}
+
+  const codeFenceRegex = /```(?:json)?\s*([\s\S]*?)\s*```/i;
+  const fenceMatch = t.match(codeFenceRegex);
+  if (fenceMatch && fenceMatch[1]) {
+    try { return JSON.parse(fenceMatch[1].trim()); } catch {}
+  }
+
+  // 3) find first balanced { ... } block
+  const firstBrace = t.indexOf('{');
+  if (firstBrace !== -1) {
+    let depth = 0;
+    for (let i = firstBrace; i < t.length; i++) {
+      const ch = t[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+      if (depth === 0) {
+        const candidate = t.slice(firstBrace, i + 1);
+        try { return JSON.parse(candidate); } catch { break; }
+      }
+    }
+  }
+  return null;
+}
 
 async function restGenerate(redactedMessage: string): Promise<{ explanation: string; verdict: 'scam'|'not_scam'|'unknown'; confidence: number }> {
   if (!GEMINI_API_KEY) {
@@ -65,65 +94,83 @@ async function restGenerate(redactedMessage: string): Promise<{ explanation: str
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`;
 
-  const prompt = `You are a concise SMS fraud analyst. Explain briefly why the message may or may not be a scam. At the end include a one-word verdict "scam" or "not_scam" and a confidence number between 0 and 1.
+
+const prompt = `You are a strict SMS fraud classifier. Return EXACTLY one JSON object and nothing else, with these keys:
+{"verdict":"scam"|"not_scam"|"unknown","confidence":0.0,"explanation":"brief 1-2 sentence explanation"}
+DO NOT wrap the JSON in markdown code fences (no backticks), do not add any extra text before or after the JSON.
 Message:
 """${redactedMessage}"""`;
 
-  const body = { contents: [{ parts: [{ text: prompt }] }] };
 
-  for (let attempt = 0; attempt <= LLM_RETRIES; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
-    try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': GEMINI_API_KEY
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
+const body = { contents: [{ parts: [{ text: prompt }] }] };
 
-      const raw = await resp.text();
-      if (!resp.ok) {
-        const err: any = new Error(`Gemini REST error ${resp.status}: ${raw}`);
-        err.status = resp.status;
-        err.body = raw;
-        // If it's clearly an API key issue, disable CB and surface error
-        const rawLower = String(raw || '').toLowerCase();
-        if (resp.status === 400 && rawLower.includes('api key')) {
-          disableGeminiForMinutes(GEMINI_DISABLE_MINUTES);
-        }
-        throw err;
-      }
+for (let attempt = 0; attempt <= LLM_RETRIES; attempt++) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': GEMINI_API_KEY
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
 
-      let parsed: any;
-      try { parsed = JSON.parse(raw); } catch { parsed = null; }
-
-      // extract candidate text similar to curl output
-      const text = parsed && Array.isArray(parsed.candidates) && parsed.candidates[0]?.content?.parts
-        ? parsed.candidates[0].content.parts.map((p: any) => p.text).join('\n')
-        : raw;
-
-      const lower = (text || '').toLowerCase();
-      let verdict: 'scam'|'not_scam'|'unknown' = 'unknown';
-      if (lower.includes('scam') && !lower.includes('not a scam')) verdict = 'scam';
-      if (lower.includes('not scam') || lower.includes('not a scam') || lower.includes('not_scam')) verdict = 'not_scam';
-      const confMatch = text.match(/(?<!\d)(0(?:\.\d+)?|1(?:\.0+)?)(?!\d)/);
-      const confidence = confMatch ? Math.max(0, Math.min(1, Number(confMatch[0]))) : 0.75;
-      return { explanation: text.trim(), verdict, confidence };
-    } catch (err: any) {
-      // if timeout/abort or last attempt, bubble up
-      clearTimeout(timer);
-      if (attempt < LLM_RETRIES) {
-        await sleep(200 * 2 ** attempt);
-        continue;
+    const raw = await resp.text();
+    if (!resp.ok) {
+      const err: any = new Error(`Gemini REST error ${resp.status}: ${raw}`);
+      err.status = resp.status;
+      err.body = raw;
+      const rawLower = String(raw || '').toLowerCase();
+      if (resp.status === 400 && rawLower.includes('api key')) {
+        disableGeminiForMinutes(GEMINI_DISABLE_MINUTES);
       }
       throw err;
     }
+
+    let parsedJson: any = null;
+    try {
+      const parsedResp = JSON.parse(raw);
+      const text = parsedResp?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text).join('\n') ?? raw;
+      parsedJson = extractJsonFromText(text);
+    } catch (e) {
+      // top-level parse failed, try extracting directly from raw
+      parsedJson = extractJsonFromText(raw);
+    }
+
+
+    // If parsedJson valid, validate fields
+    if (parsedJson && typeof parsedJson === 'object') {
+      const verdict = (parsedJson.verdict || '').toString();
+      const confidence = Number(parsedJson.confidence ?? 0);
+      const explanation = String(parsedJson.explanation ?? '').trim();
+
+      if (['scam','not_scam','unknown'].includes(verdict) && !Number.isNaN(confidence)) {
+        return {
+          explanation: explanation || raw,
+          verdict: verdict as 'scam'|'not_scam'|'unknown',
+          confidence: Math.max(0, Math.min(1, confidence))
+        };
+      }
+    }
+
+    // fallback.....
+    return { explanation: raw.trim(), verdict: 'unknown', confidence: 0 };
+
+  } catch (err: any) {
+    clearTimeout(timer);
+    if (attempt < LLM_RETRIES) {
+      const backoff = 200 * 2 ** attempt + Math.floor(Math.random()*100);
+      await sleep(backoff);
+      continue;
+    }
+    throw err;
   }
+}
+
   throw new Error('unreachable');
 }
 
